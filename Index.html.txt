@@ -3,60 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MatSmart</title>
+
+<title>MatSmart AI</title>
 
 <style>
 body {
-    font-family: -apple-system, BlinkMacSystemFont;
-    margin: 0;
+    font-family: -apple-system;
     background: #f5f5f7;
-    color: #111;
+    margin: 0;
+    padding: 20px;
 }
 
 .container {
-    padding: 20px;
     max-width: 600px;
     margin: auto;
 }
 
-h1 {
-    font-size: 34px;
-}
-
 input {
     width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    margin-top: 10px;
-    border-radius: 10px;
+    padding: 14px;
+    border-radius: 12px;
     border: 1px solid #ccc;
+    font-size: 16px;
 }
 
 button {
     width: 100%;
     padding: 14px;
     margin-top: 10px;
-    background: #0a84ff;
-    color: white;
+    border-radius: 12px;
     border: none;
-    border-radius: 10px;
+    background: black;
+    color: white;
     font-size: 16px;
 }
 
 .card {
     background: white;
-    padding: 15px;
-    margin-top: 15px;
-    border-radius: 12px;
-}
-
-.price {
-    display: flex;
-    justify-content: space-between;
-}
-.green {
-    color: green;
-    font-weight: bold;
+    padding: 16px;
+    border-radius: 16px;
+    margin-top: 20px;
 }
 </style>
 </head>
@@ -65,66 +51,73 @@ button {
 
 <div class="container">
 
-<h1>🇸🇪 MatSmart</h1>
-<p>Recept → billigaste inköpslista</p>
+<h1>🇸🇪 MatSmart AI</h1>
 
-<input id="url" placeholder="Klistra in receptlänk...">
+<input id="recipeUrl" placeholder="Klistra in receptlänk">
 
-<button onclick="loadRecipe()">Analysera recept</button>
+<button onclick="analyzeRecipe()">
+Analysera recept
+</button>
 
-<div id="result"></div>
+<div id="output"></div>
 
 </div>
 
 <script>
-function loadRecipe() {
 
-    const result = document.getElementById("result");
+async function analyzeRecipe() {
 
-    // DEMO DATA (sen kopplar vi AI)
-    const recipe = {
-        title: "Tacopaj",
-        ingredients: [
-            "500g köttfärs",
-            "1 gul lök",
-            "1 påse tacokrydda",
-            "2 dl ost"
-        ]
-    };
+    const url = document.getElementById("recipeUrl").value;
 
-    const prices = {
-        ICA: 212,
-        Willys: 189
-    };
+    document.getElementById("output").innerHTML =
+        "<p>⏳ Läser recept...</p>";
 
-    let html = `
+    // HÄMTA HTML FRÅN RECEPTSIDA
+    const page = await fetch(url);
+    const html = await page.text();
+
+    // SKICKA TILL OPENAI
+    const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization":
+                    "Bearer <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>"
+            },
+            body: JSON.stringify({
+                model: "gpt-4.1-mini",
+                messages: [
+                    {
+                        role: "system",
+                        content:
+                        "Du extraherar receptingredienser och returnerar en enkel inköpslista på svenska."
+                    },
+                    {
+                        role: "user",
+                        content:
+                        "Här är HTML från ett recept:\n\n" + html
+                    }
+                ],
+                temperature: 0.2
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    const text =
+        data.choices[0].message.content;
+
+    document.getElementById("output").innerHTML = `
         <div class="card">
-            <h2>${recipe.title}</h2>
-            <p><b>Ingredienser:</b></p>
-            <ul>
-                ${recipe.ingredients.map(i => `<li>${i}</li>`).join("")}
-            </ul>
-        </div>
-
-        <div class="card">
-            <h3>💰 Prisjämförelse</h3>
-
-            <div class="price">
-                <span>ICA</span><span>${prices.ICA} kr</span>
-            </div>
-
-            <div class="price">
-                <span>Willys</span><span>${prices.Willys} kr</span>
-            </div>
-
-            <p class="green">
-                Billigast: Willys (spara ${prices.ICA - prices.Willys} kr)
-            </p>
+            <h2>🛒 Inköpslista</h2>
+            <pre>${text}</pre>
         </div>
     `;
-
-    result.innerHTML = html;
 }
+
 </script>
 
 </body>
