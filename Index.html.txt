@@ -84,7 +84,7 @@ async function analyzeRecipe() {
             headers: {
                 "Content-Type": "application/json",
                 "Authorization":
-                    "Bearer <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>"
+                    "Bearer <sk->"
             },
             body: JSON.stringify({
                 model: "gpt-4.1-mini",
