@@ -1,0 +1,66 @@
+async function analyzeRecipe() {
+
+  const url =
+    document.getElementById("recipeUrl").value;
+
+  const loading =
+    document.getElementById("loading");
+
+  const result =
+    document.getElementById("result");
+
+  loading.innerHTML = "⏳ Läser recept...";
+  result.innerHTML = "";
+
+  const response = await fetch("/api/recipe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ url })
+  });
+
+  const data = await response.json();
+
+  loading.innerHTML = "";
+
+  const ingredients =
+    data.ingredients || [];
+
+  let ingredientHTML = ingredients
+    .map(i => `<li>${i}</li>`)
+    .join("");
+
+  result.innerHTML = `
+    <div class="card">
+
+      <h2>🛒 Inköpslista</h2>
+
+      <ul>
+        ${ingredientHTML}
+      </ul>
+
+    </div>
+
+    <div class="card">
+
+      <h2>💰 Prisjämförelse</h2>
+
+      <div class="priceRow">
+        <span>ICA</span>
+        <span>${data.prices.ica} kr</span>
+      </div>
+
+      <div class="priceRow">
+        <span>Willys</span>
+        <span>${data.prices.willys} kr</span>
+      </div>
+
+      <p class="green">
+        Billigast:
+        ${data.cheapest}
+      </p>
+
+    </div>
+  `;
+}
