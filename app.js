@@ -9,58 +9,64 @@ async function analyzeRecipe() {
   const result =
     document.getElementById("result");
 
-  loading.innerHTML = "⏳ Läser recept...";
+  loading.innerHTML = "⏳ Analyserar recept...";
   result.innerHTML = "";
 
-  const response = await fetch("/api/recipe", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ url })
-  });
+  try {
 
-  const data = await response.json();
+    const response = await fetch(
+      "/api/recipe",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+        body: JSON.stringify({ url })
+      }
+    );
 
-  loading.innerHTML = "";
+    const data =
+      await response.json();
 
-  const ingredients =
-    data.ingredients || [];
+    if (data.error) {
+      throw new Error(data.error);
+    }
 
-  let ingredientHTML = ingredients
-    .map(i => `<li>${i}</li>`)
-    .join("");
+    loading.innerHTML = "";
 
-  result.innerHTML = `
-    <div class="card">
+    result.innerHTML = `
+      <div class="card">
+        <h2>🛒 Inköpslista</h2>
 
-      <h2>🛒 Inköpslista</h2>
-
-      <ul>
-        ${ingredientHTML}
-      </ul>
-
-    </div>
-
-    <div class="card">
-
-      <h2>💰 Prisjämförelse</h2>
-
-      <div class="priceRow">
-        <span>ICA</span>
-        <span>${data.prices.ica} kr</span>
+        <ul>
+          ${data.ingredients
+            .map(i => `<li>${i}</li>`)
+            .join("")}
+        </ul>
       </div>
 
-      <div class="priceRow">
-        <span>Willys</span>
-        <span>${data.prices.willys} kr</span>
+      <div class="card">
+        <h2>💰 Prisjämförelse</h2>
+
+        <p>ICA: ${data.prices.ica} kr</p>
+        <p>Willys: ${data.prices.willys} kr</p>
+
+        <p class="green">
+          Billigast:
+          ${data.cheapest}
+        </p>
       </div>
+    `;
 
-      <p class="green">
-        Billigast:
-        ${data.cheapest}
-      </p>
+  } catch (error) {
 
-    </div>
-  `;
+    loading.innerHTML = "";
+
+    result.innerHTML = `
+      <div class="card">
+        ❌ ${error.message}
+      </div>
+    `;
+  }
 }
