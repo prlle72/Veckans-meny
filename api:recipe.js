@@ -4,11 +4,28 @@ export default async function handler(req, res) {
 
     const { url } = req.body;
 
+    if (!url) {
+      return res.status(400).json({
+        error: "Ingen URL skickades"
+      });
+    }
+
     // HÄMTA RECEPTSIDA
     const page = await fetch(url);
+
+    if (!page.ok) {
+      return res.status(500).json({
+        error: "Kunde inte läsa receptsidan"
+      });
+    }
+
     const html = await page.text();
 
-    // OPENAI
+    // KORTA NER HTML
+    const trimmed =
+      html.slice(0, 8000);
+
+    // OPENAI REQUEST
     const aiResponse = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -24,19 +41,30 @@ export default async function handler(req, res) {
             {
               role: "system",
               content:
-                "Extrahera endast ingredienser från receptet som JSON-array."
+                "Extrahera ingredienser från receptet. Returnera ENDAST JSON-array. Exempel: [\"500g köttfärs\", \"1 lök\"]"
             },
             {
               role: "user",
-              content: html.slice(0, 15000)
+              content: trimmed
             }
           ],
-          temperature: 0.2
+          temperature: 0
         })
       }
     );
 
-    const aiData = await aiResponse.json();
+    const aiData =
+      await aiResponse.json();
+
+    // DEBUG
+    console.log(aiData);
+
+    if (!aiData.choices) {
+      return res.status(500).json({
+        error: "Fel från OpenAI",
+        details: aiData
+      });
+    }
 
     const text =
       aiData.choices[0].message.content;
@@ -44,12 +72,19 @@ export default async function handler(req, res) {
     let ingredients = [];
 
     try {
-      ingredients = JSON.parse(text);
+
+      ingredients =
+        JSON.parse(text);
+
     } catch {
-      ingredients = [text];
+
+      ingredients =
+        text
+          .split("\n")
+          .filter(Boolean);
     }
 
-    // SUPERENKEL PRISLOGIK
+    // ENKEL PRISLOGIK
     let ica = 0;
     let willys = 0;
 
@@ -63,7 +98,9 @@ export default async function handler(req, res) {
         willys += 59;
       }
 
-      else if (lower.includes("lök")) {
+      else if (
+        lower.includes("lök")
+      ) {
         ica += 12;
         willys += 10;
       }
@@ -74,7 +111,7 @@ export default async function handler(req, res) {
       }
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       ingredients,
       prices: {
         ica,
@@ -88,7 +125,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
 
-    res.status(500).json({
+    console.error(error);
+
+    return res.status(500).json({
       error: error.message
     });
   }
