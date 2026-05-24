@@ -1,7 +1,34 @@
 async function analyzeRecipe() {
 
-  const url =
-    document.getElementById("recipeUrl").value;
+  let url =
+    document
+      .getElementById("recipeUrl")
+      .value
+      .trim();
+
+  // Lägg till https:// automatiskt
+  if (
+    !url.startsWith("http://") &&
+    !url.startsWith("https://")
+  ) {
+    url = "https://" + url;
+  }
+
+  // Kontrollera giltig URL
+  try {
+    new URL(url);
+  } catch {
+
+    document
+      .getElementById("result")
+      .innerHTML = `
+        <div class="card">
+          ❌ Ogiltig länk
+        </div>
+      `;
+
+    return;
+  }
 
   const loading =
     document.getElementById("loading");
@@ -9,7 +36,9 @@ async function analyzeRecipe() {
   const result =
     document.getElementById("result");
 
-  loading.innerHTML = "⏳ Analyserar recept...";
+  loading.innerHTML =
+    "⏳ Analyserar recept...";
+
   result.innerHTML = "";
 
   try {
